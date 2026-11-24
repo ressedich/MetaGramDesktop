@@ -31,6 +31,8 @@ jobs:
 
     env:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      # breakpad's dump_syms needs ATL, which the runner lacks for this toolset; MetaGram does not use it
+      SKIP_DUMPSYMS: "1"
       # Your own keys from my.telegram.org go to repository secrets
       # METAGRAM_API_ID / METAGRAM_API_HASH; without them the official
       # Telegram Desktop keys are used, like AyuGram does.
@@ -112,6 +114,7 @@ jobs:
           key: ${{ runner.os }}-x64-libs-${{ env.CACHE_KEY }}-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-x64-libs-${{ env.CACHE_KEY }}-
+            ${{ runner.os }}-x64-libs-
 
       - name: Libraries.
         id: libs
