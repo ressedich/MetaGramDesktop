@@ -23,6 +23,7 @@
 
 #include <fstream>
 #include <QApplication>
+#include <QFile>
 
 using json = nlohmann::json;
 
@@ -1210,7 +1211,10 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._showChannelReactions = j.value("showChannelReactions", defaults._showChannelReactions.current());
 	s._showGroupReactions = j.value("showGroupReactions", defaults._showGroupReactions.current());
 	s._showPrivateChatReactions = j.value("showPrivateChatReactions", defaults._showPrivateChatReactions.current());
-	s._appIcon = defaults._appIcon.current(); // MetaGram: single app icon
+	s._appIcon = j.value("appIcon", defaults._appIcon.current());
+	if (!QFile::exists(u":/gui/art/ayu/%1/app_icon.ico"_q.arg(s._appIcon.current()))) {
+		s._appIcon = defaults._appIcon.current();
+	}
 	s._simpleQuotesAndReplies = j.value("simpleQuotesAndReplies", defaults._simpleQuotesAndReplies.current());
 	s._hideFastShare = j.value("hideFastShare", defaults._hideFastShare.current());
 	s._replaceBottomInfoWithIcons = j.value("replaceBottomInfoWithIcons", defaults._replaceBottomInfoWithIcons.current());

@@ -216,31 +216,29 @@ EXACT += [(f, s, s.replace("AyuGram", "MetaGram")) for f, s in RENAME_IN]
 EXACT += [
     ("Telegram/SourceFiles/core/update_checker.cpp",
      'return "https://t.me/AyuGramReleases";', f'return "{CHANNEL_LINK}";'),
-    # Only the MetaGram icon exists: ignore any saved alternative icon.
+    # Icons are MetaGram's own (metagram/make_icons.py): fall back to the
+    # default one if a saved icon does not exist in this build.
     ("Telegram/SourceFiles/ayu/ayu_settings.cpp",
      's._appIcon = j.value("appIcon", defaults._appIcon.current());',
-     's._appIcon = defaults._appIcon.current(); // MetaGram: single app icon'),
+     's._appIcon = j.value("appIcon", defaults._appIcon.current());{NL}'
+     '\tif (!QFile::exists(u":/gui/art/ayu/%1/app_icon.ico"_q.arg(s._appIcon.current()))) {{NL}'
+     '\t\ts._appIcon = defaults._appIcon.current();{NL}'
+     '\t}'),
+    ("Telegram/SourceFiles/ayu/ayu_settings.cpp",
+     '#include <QApplication>', '#include <QApplication>{NL}#include <QFile>'),
     ("Telegram/CMakeLists.txt",
      'ALTERNATE_APPICON_NAMES "AppIcon-Alt AppIcon-Discord AppIcon-Spotify AppIcon-Extera '
      'AppIcon-Nothing AppIcon-Bard AppIcon-Yaplus AppIcon-Win95 AppIcon-Chibi AppIcon-Chibi2 AppIcon-Extera2"',
      'ALTERNATE_APPICON_NAMES ""'),
 ]
 
-# Alternative app icons (AyuGram artwork) are removed; their files are deleted from git.
-ALT_ICONS = "alt|bard|chibi|chibi2|discord|extera|extera2|nothing|spotify|win95|yaplus"
+# AyuGram's alternative app icons are replaced by MetaGram's own set; the
+# icon lists in code and resources are written by metagram/make_icons.py.
+# macOS alternative icons (AyuGram artwork) are dropped.
 REGEX += [
-    ("Telegram/Resources/qrc/ayu/ayu.qrc",
-     rf'[ \t]*<file alias="art/ayu/({ALT_ICONS})/[^"]+">[^<]+</file>\r?\n', ''),
-    ("Telegram/SourceFiles/ayu/ui/components/icon_picker.cpp",
-     rf'\tAyuAssets::({ALT_ICONS.upper()})_ICON,\r?\n', ''),
     ("Telegram/CMakeLists.txt",
      r'(set\(ayugram_icons\r?\n\s+Default\r?\n)(\s+(Alt|Discord|Spotify|Extera|Nothing|Bard|Yaplus'
      r'|Win95|Chibi|Chibi2|Extera2)\r?\n)+', r'\1'),
-    # hide the icon picker in Appearance settings
-    ("Telegram/SourceFiles/ayu/ui/settings/settings_appearance.cpp",
-     r'\tbuilder\.addSubsectionTitle\(\{\r?\n\t\t\.id = u"ayu/appIcon"_q,.*?\n\t\}\);\r?\n\r?\n'
-     r'\tbuilder\.add\(\[\]\(const WidgetContext &ctx\) -> SectionBuilder::WidgetToAdd \{\r?\n'
-     r'\t\treturn \{\r?\n\t\t\t\.widget = object_ptr<IconPicker>\(ctx\.container\),.*?\n\t\}\);\r?\n\r?\n', ''),
 ]
 
 # Strings in lang.strings whose text we write ourselves.

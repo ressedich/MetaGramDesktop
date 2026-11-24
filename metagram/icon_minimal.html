@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>MetaGram — минималистичные иконки</title>
+<style>
+  body { margin: 0; padding: 32px; font: 15px/1.4 system-ui, "Segoe UI", sans-serif; background: #F4F5F8; color: #111; }
+  h1 { margin: 0 0 4px; font-size: 24px; }
+  p.sub { margin: 0 0 28px; color: #555; max-width: 760px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+  .card { background: #fff; border-radius: 16px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .num { font-weight: 700; font-size: 20px; color: #6D4AFF; }
+  .name { font-weight: 600; }
+  .big { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; }
+  .big svg { width: 120px; height: 120px; }
+  .small { display: flex; border-radius: 10px; overflow: hidden; }
+  .small div { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 0; }
+  .small .light { background: #EDEEF2; }
+  .small .dark { background: #202124; }
+  .s48 { width: 48px; height: 48px; } .s24 { width: 24px; height: 24px; } .s16 { width: 16px; height: 16px; }
+  .idea { margin-top: 10px; font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+<h1>MetaGram — минималистичные иконки</h1>
+<p class="sub">Один простой знак на однотонном фоне. У каждого варианта две расцветки: цветная и чёрно-белая. Ниже — как он выглядит в размерах 48, 24 и 16 пикселей. Цвет фона легко поменять на любой.</p>
+<div class="grid" id="grid"></div>
+
+<script>
+const S = 'fill="none" stroke="FG" stroke-linecap="round" stroke-linejoin="round"';
+const variants = [
+  { name: "Две вершины", color: "#111111", idea: "Буква M, сведённая к двум острым пикам. Строго, как логотип бренда.",
+    glyph: `<path d="M120 352L200 164L256 296L312 164L392 352" ${S} stroke-width="44"/>` },
+  { name: "Полумесяц", color: "#2340D9", idea: "Ночь и тишина: тебя не видно. Одна фигура.",
+    glyph: `<path d="M296 128A140 140 0 1 0 392 336A112 112 0 1 1 296 128Z" fill="FG"/>` },
+  { name: "Призрак", color: "#6D4AFF", idea: "Режим призрака одним силуэтом, глаза — просто две точки.",
+    glyph: `<path d="M256 124C192 124 156 172 156 230V378L190 352L223 380L256 352L289 380L322 352L356 378V230C356 172 320 124 256 124Z" fill="FG"/>
+            <circle cx="218" cy="236" r="18" fill="BG"/><circle cx="294" cy="236" r="18" fill="BG"/>` },
+  { name: "Закрытый глаз", color: "#0F0F10", idea: "Спящий глаз: «не вижу и не видно». Понятно даже в 16 пикселях.",
+    glyph: `<path d="M140 232Q256 340 372 232" ${S} stroke-width="36"/>
+            <path d="M180 286L162 326M256 306V350M332 286L350 326" ${S} stroke-width="30"/>` },
+  { name: "Искра", color: "#FF5A36", idea: "Четырёхлучевая звезда — «что-то особенное». Без молнии.",
+    glyph: `<path d="M256 112C266 204 308 246 400 256C308 266 266 308 256 400C246 308 204 266 112 256C204 246 246 204 256 112Z" fill="FG"/>` },
+  { name: "Перечёркнутый круг", color: "#111111", idea: "Знак «нет»: не прочитано, не в сети, не печатает.",
+    glyph: `<circle cx="256" cy="256" r="118" ${S} stroke-width="38"/><path d="M174 338L338 174" ${S} stroke-width="38"/>` },
+  { name: "Планета", color: "#0EA5E9", idea: "Шар с кольцом — свой маленький мир. Нейтрально и красиво.",
+    glyph: `<circle cx="256" cy="256" r="84" fill="FG"/>
+            <ellipse cx="256" cy="256" rx="170" ry="54" transform="rotate(-24 256 256)" ${S} stroke-width="26"/>
+            <path d="M178 216A84 84 0 0 1 334 216" fill="FG"/>` },
+  { name: "Облачко", color: "#10B981", idea: "Контур сообщения без лишнего — просто «мессенджер».",
+    glyph: `<path d="M256 134C176 134 126 186 126 248C126 284 142 314 168 334L158 384L216 358Q236 362 256 362C336 362 386 310 386 248C386 186 336 134 256 134Z" ${S} stroke-width="36"/>` },
+  { name: "Тень", color: "#111111", idea: "Два круга: один есть, другой — только контур. Присутствие и отсутствие.",
+    glyph: `<circle cx="214" cy="256" r="96" fill="FG"/><circle cx="310" cy="256" r="96" ${S} stroke-width="28"/>` },
+  { name: "Глаз", color: "#7C3AED", idea: "Видит всё, включая удалённые сообщения. Чистая геометрия.",
+    glyph: `<path d="M112 256Q256 120 400 256Q256 392 112 256Z" fill="FG"/><circle cx="256" cy="256" r="54" fill="BG"/>` },
+  { name: "Маска", color: "#151515", idea: "Полоса с двумя прорезями — инкогнито в одну фигуру.",
+    glyph: `<path d="M112 222Q112 190 150 190H362Q400 190 400 222V258Q400 316 340 316Q296 316 256 282Q216 316 172 316Q112 316 112 258Z" fill="FG"/>
+            <ellipse cx="190" cy="248" rx="38" ry="24" fill="BG"/><ellipse cx="322" cy="248" rx="38" ry="24" fill="BG"/>` },
+  { name: "Открытое кольцо", color: "#E11D48", idea: "Кольцо с разрывом и точкой — как «M», «Meta», «момент». Абстрактно.",
+    glyph: `<path d="M352 176A130 130 0 1 0 380 256" ${S} stroke-width="44"/><circle cx="380" cy="176" r="26" fill="FG"/>` },
+];
+
+const icon = (v, cls, bg, fg) =>
+  `<svg class="${cls}" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="116" fill="${bg}"/>${v.glyph.replaceAll("FG", fg).replaceAll("BG", bg)}</svg>`;
+
+document.getElementById("grid").innerHTML = variants.map((v, i) => {
+  const mono = v.color === "#111111" || v.color === "#0F0F10" || v.color === "#151515";
+  const alt = mono ? ["#FFFFFF", "#111111"] : ["#111111", "#FFFFFF"];
+  return `
+  <div class="card">
+    <div class="head"><span class="num">${i + 1}</span><span class="name">${v.name}</span></div>
+    <div class="big">${icon(v, "", v.color, "#FFFFFF")}${icon(v, "", alt[0], alt[1])}</div>
+    <div class="small">
+      <div class="light">${icon(v, "s48", v.color, "#fff")}${icon(v, "s24", v.color, "#fff")}${icon(v, "s16", v.color, "#fff")}</div>
+      <div class="dark">${icon(v, "s48", v.color, "#fff")}${icon(v, "s24", v.color, "#fff")}${icon(v, "s16", v.color, "#fff")}</div>
+    </div>
+    <div class="idea">${v.idea}</div>
+  </div>`;
+}).join("");
+</script>
+</body>
+</html>

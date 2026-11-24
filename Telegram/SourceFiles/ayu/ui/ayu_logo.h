@@ -11,17 +11,25 @@
 namespace AyuAssets {
 
 ICON(DEFAULT, "default");
-ICON(ALT, "alt");
-ICON(DISCORD, "discord");
-ICON(SPOTIFY, "spotify");
-ICON(EXTERA, "extera");
-ICON(NOTHING, "nothing");
-ICON(BARD, "bard");
-ICON(YAPLUS, "yaplus");
-ICON(WIN95, "win95");
-ICON(CHIBI, "chibi");
-ICON(CHIBI2, "chibi2");
-ICON(EXTERA2, "extera2");
+ICON(LIGHT, "light");
+ICON(NEON, "neon");
+ICON(GOLD, "gold");
+ICON(PINK, "pink");
+ICON(OCEAN, "ocean");
+ICON(PEAKS, "peaks");
+ICON(GHOST, "ghost");
+ICON(GHOSTNIGHT, "ghostnight");
+ICON(MOON, "moon");
+ICON(AURORA, "aurora");
+ICON(SLEEPY, "sleepy");
+ICON(EYE, "eye");
+ICON(SPARK, "spark");
+ICON(SUNSET, "sunset");
+ICON(PLANET, "planet");
+ICON(BUBBLE, "bubble");
+ICON(SHADOW, "shadow");
+ICON(MASK, "mask");
+ICON(RING, "ring");
 
 void loadAppIco();
 QString appIcoPath();

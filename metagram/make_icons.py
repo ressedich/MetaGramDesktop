@@ -1,83 +1,115 @@
 #!/usr/bin/env python3
-"""Draw the MetaGram app icon and write every icon file the app uses.
+"""Render MetaGram app icons from metagram/icons.py and wire them into the app.
 
-Needs Pillow (pip install pillow). Run from the repository root:
+Writes, for every icon, Telegram/Resources/art/ayu/<key>/app.svg + app_icon.ico;
+for the default icon also the exe/tray icons (icon*.png, icon256.ico, logo_256*).
+Then updates the icon lists in ayu_logo.h, icon_picker.cpp and ayu.qrc.
+
+Needs: pip install pillow resvg-py
+Run from the repository root after metagram/rebrand.py:
     python metagram/make_icons.py
-The vector version is metagram/icon.svg (also copied to the app resources).
 """
+import io
 import pathlib
+import re
 import shutil
+import sys
 
-from PIL import Image, ImageDraw
+import resvg_py
+from PIL import Image
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from icons import ICONS, svg  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ART = ROOT / "Telegram/Resources/art"
-SVG = ROOT / "metagram/icon.svg"
-
-TOP_LEFT = (0x7B, 0x5C, 0xFF)      # violet
-BOTTOM_RIGHT = (0x1F, 0xB6, 0xFF)  # sky blue
-# "M" stroke in a 512x512 box; keep in sync with icon.svg
-M_POINTS = [(150, 350), (150, 170), (256, 290), (362, 170), (362, 350)]
-M_WIDTH = 56
-SS = 4  # supersampling factor
+ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
 
 
-def draw(size, margin=0):
-    big = size * SS
-    inner = big - 2 * margin * SS
-    # diagonal gradient
-    n = 256  # a smooth gradient survives upscaling
-    grad = Image.new("RGB", (n, n))
-    px = grad.load()
-    for y in range(n):
-        for x in range(n):
-            t = (x + y) / (2 * (n - 1))
-            px[x, y] = tuple(round(a + (b - a) * t) for a, b in zip(TOP_LEFT, BOTTOM_RIGHT))
-    grad = grad.resize((inner, inner), Image.BICUBIC)
-    mask = Image.new("L", (inner, inner), 0)
-    ImageDraw.Draw(mask).ellipse((0, 0, inner - 1, inner - 1), fill=255)
-    circle = Image.new("RGBA", (inner, inner), (0, 0, 0, 0))
-    circle.paste(grad, (0, 0), mask)
+def render(svg_text, size):
+    data = resvg_py.svg_to_bytes(svg_string=svg_text, width=size, height=size)
+    return Image.open(io.BytesIO(bytes(data))).convert("RGBA")
 
-    d = ImageDraw.Draw(circle)
-    k = inner / 512
-    pts = [(x * k, y * k) for x, y in M_POINTS]
-    w = round(M_WIDTH * k)
-    d.line(pts, fill="white", width=w, joint="curve")
-    r = w / 2
-    for x, y in (pts[0], pts[-1]):
-        d.ellipse((x - r, y - r, x + r, y + r), fill="white")
 
-    out = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-    out.paste(circle, (margin * SS, margin * SS), circle)
-    return out.resize((size, size), Image.LANCZOS)
+def save_ico(svg_text, path):
+    # each size rendered from vectors, not downscaled, so small sizes stay crisp
+    frames = [render(svg_text, s) for s in ICO_SIZES]
+    frames[-1].save(path, sizes=[(s, s) for s in ICO_SIZES], append_images=frames[:-1])
+
+
+def read(path):
+    return path.read_bytes().decode("utf-8")
+
+
+def write(path, text):
+    path.write_bytes(text.encode("utf-8"))
+
+
+def nl_of(text):
+    return "\r\n" if "\r\n" in text else "\n"
+
+
+def update_code():
+    keys = [i["key"] for i in ICONS]
+    const = {k: re.sub(r"\W", "_", k).upper() + "_ICON" for k in keys}
+
+    h = ROOT / "Telegram/SourceFiles/ayu/ui/ayu_logo.h"
+    text = read(h)
+    nl = nl_of(text)
+    block = nl.join(f'ICON({const[k][:-5]}, "{k}");' for k in keys) + nl
+    text, n = re.subn(r'(namespace AyuAssets \{\r?\n\r?\n)(ICON\([^\n]*\n)+', lambda m: m.group(1) + block, text)
+    assert n == 1, "ayu_logo.h: icon list not found"
+    write(h, text)
+
+    cpp = ROOT / "Telegram/SourceFiles/ayu/ui/components/icon_picker.cpp"
+    text = read(cpp)
+    nl = nl_of(text)
+    body = "".join(f"\tAyuAssets::{const[k]},{nl}" for k in keys)
+    text, n = re.subn(r'(const QVector<QString> icons\{\r?\n)(.*?)(\};)', lambda m: m.group(1) + body + m.group(3),
+                      text, flags=re.S)
+    assert n == 1, "icon_picker.cpp: icon list not found"
+    write(cpp, text)
+
+    qrc = ROOT / "Telegram/Resources/qrc/ayu/ayu.qrc"
+    text = read(qrc)
+    nl = nl_of(text)
+    text = re.sub(r'[ \t]*<file alias="art/ayu/[^"]+">[^<]+</file>\r?\n', "", text)
+    lines = "".join(
+        f'        <file alias="art/ayu/{k}/{f}">../../art/ayu/{k}/{f}</file>{nl}'
+        for k in keys for f in ("app.svg", "app_icon.ico"))
+    text, n = re.subn(r'(<qresource prefix="/gui">\r?\n)', lambda m: m.group(1) + lines, text, count=1)
+    assert n == 1, "ayu.qrc: qresource not found"
+    write(qrc, text)
 
 
 def main():
-    master = draw(1024)
-    cache = {}
+    ayu = ART / "ayu"
+    wanted = {i["key"] for i in ICONS}
+    for d in ayu.iterdir():
+        if d.is_dir() and d.name not in wanted:
+            shutil.rmtree(d)
 
-    def at(size, margin=0):
-        key = (size, margin)
-        if key not in cache:
-            cache[key] = draw(size, margin) if size <= 256 or margin else master.resize((size, size), Image.LANCZOS)
-        return cache[key]
+    for icon in ICONS:
+        d = ayu / icon["key"]
+        d.mkdir(exist_ok=True)
+        (d / "app.svg").write_text(svg(icon, rounded=False), encoding="utf-8", newline="\n")
+        save_ico(svg(icon, rounded=True), d / "app_icon.ico")
 
+    default = svg(ICONS[0], rounded=True)
     for base in (16, 32, 48, 64, 128, 256, 512):
-        at(base).save(ART / f"icon{base}.png")
-        at(base * 2).save(ART / f"icon{base}@2x.png")
-    at(1024).save(ART / "icon_round512@2x.png")
-    at(256).save(ART / "logo_256_no_margin.png")
-    at(256, margin=16).save(ART / "logo_256.png")
+        render(default, base).save(ART / f"icon{base}.png")
+        render(default, base * 2).save(ART / f"icon{base}@2x.png")
+    render(default, 1024).save(ART / "icon_round512@2x.png")
+    render(default, 256).save(ART / "logo_256_no_margin.png")
+    logo = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
+    logo.paste(render(default, 224), (16, 16))
+    logo.save(ART / "logo_256.png")
+    save_ico(default, ART / "icon256.ico")
+    (ROOT / "metagram/icon.svg").write_text(default, encoding="utf-8", newline="\n")
+    render(default, 512).save(ROOT / "metagram/icon_preview.png")
 
-    ico_sizes = [(s, s) for s in (16, 24, 32, 48, 64, 128, 256)]
-    master.save(ART / "icon256.ico", sizes=ico_sizes)
-
-    default = ART / "ayu/default"
-    master.save(default / "app_icon.ico", sizes=ico_sizes)
-    shutil.copyfile(SVG, default / "app.svg")
-    master.resize((512, 512), Image.LANCZOS).save(ROOT / "metagram/icon_preview.png")
-    print("icons written")
+    update_code()
+    print(f"{len(ICONS)} icons written")
 
 
 if __name__ == "__main__":

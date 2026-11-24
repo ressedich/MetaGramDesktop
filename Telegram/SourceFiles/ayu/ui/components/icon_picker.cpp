@@ -23,6 +23,25 @@ namespace {
 
 const QVector<QString> icons{
 	AyuAssets::DEFAULT_ICON,
+	AyuAssets::LIGHT_ICON,
+	AyuAssets::NEON_ICON,
+	AyuAssets::GOLD_ICON,
+	AyuAssets::PINK_ICON,
+	AyuAssets::OCEAN_ICON,
+	AyuAssets::PEAKS_ICON,
+	AyuAssets::GHOST_ICON,
+	AyuAssets::GHOSTNIGHT_ICON,
+	AyuAssets::MOON_ICON,
+	AyuAssets::AURORA_ICON,
+	AyuAssets::SLEEPY_ICON,
+	AyuAssets::EYE_ICON,
+	AyuAssets::SPARK_ICON,
+	AyuAssets::SUNSET_ICON,
+	AyuAssets::PLANET_ICON,
+	AyuAssets::BUBBLE_ICON,
+	AyuAssets::SHADOW_ICON,
+	AyuAssets::MASK_ICON,
+	AyuAssets::RING_ICON,
 };
 
 const auto rows = static_cast<int>(icons.size()) / IconPicker::kColumns

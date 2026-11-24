@@ -51,6 +51,18 @@ bool HasDrawerBots(not_null<Window::SessionController*> controller) {
 }
 
 void BuildAppIcon(SectionBuilder &builder, AyuSectionBuilder &ayu) {
+	builder.addSubsectionTitle({
+		.id = u"ayu/appIcon"_q,
+		.title = tr::ayu_AppIconHeader(),
+	});
+
+	builder.add([](const WidgetContext &ctx) -> SectionBuilder::WidgetToAdd {
+		return {
+			.widget = object_ptr<IconPicker>(ctx.container),
+			.margin = st::settingsButtonNoIcon.padding,
+		};
+	});
+
 #if defined Q_OS_WIN || defined Q_OS_MAC
 	builder.addDivider();
 	builder.addSkip();
