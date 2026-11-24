@@ -1,5 +1,7 @@
 # MetaGram Desktop
 
+<img src="metagram/icon_preview.png" width="128" alt="MetaGram">
+
 [ English | [Русский](README-RU.md) ]
 
 A desktop Telegram client focused on privacy and customization.
