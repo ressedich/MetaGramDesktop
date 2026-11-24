@@ -180,6 +180,12 @@ void AyuLanguage::applyLanguageJson(QJsonDocument doc) {
 	for (const QString &brokenKey : json.keys()) {
 		auto key = qsl("ayu_") + brokenKey;
 		auto val = json.value(brokenKey).toString().replace(qsl("&amp;"), qsl("&"));
+		if (brokenKey.startsWith(qsl("SettingsWatermark")) || brokenKey.startsWith(qsl("FirstLaunchAlert")) || brokenKey.startsWith(qsl("IntroAbout"))) {
+			continue; // MetaGram: keep texts from lang.strings
+		}
+		if (!brokenKey.startsWith(qsl("SupporterPopup")) && !brokenKey.startsWith(qsl("OfficialResourcePopup")) && !brokenKey.startsWith(qsl("ExteraChatsAlert"))) {
+			val = val.replace(qsl("AyuGram"), qsl("MetaGram"));
+		}
 
 		if (key.endsWith("_Android")) {
 			continue;

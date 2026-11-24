@@ -1,0 +1,168 @@
+name: MetaGram Windows
+
+# Builds MetaGram.exe (x64, Release) and uploads it as a zip artifact.
+# The first run builds all libraries (Qt, FFmpeg, ...) and can take most of the
+# 6-hour job limit. Libraries are cached even if the run fails or times out,
+# so just re-run the workflow and it continues from where it stopped.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'LICENSE'
+      - 'LEGAL'
+      - 'lib/xdg/**'
+      - 'snap/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
+      - 'Telegram/SourceFiles/platform/mac/**'
+
+concurrency:
+  group: metagram-win-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 355
+
+    env:
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      # Your own keys from my.telegram.org go to repository secrets
+      # METAGRAM_API_ID / METAGRAM_API_HASH; without them the official
+      # Telegram Desktop keys are used, like AyuGram does.
+      API_ID: ${{ secrets.METAGRAM_API_ID || '2040' }}
+      API_HASH: ${{ secrets.METAGRAM_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Clean up preinstalled software.
+        shell: pwsh
+        run: |
+          $before = (Get-PSDrive C).Free / 1GB
+          Get-Service docker -ErrorAction SilentlyContinue | Stop-Service -ErrorAction SilentlyContinue
+          wsl --shutdown 2> $null
+          Remove-Item "C:\Android\android-sdk", "C:\Program Files\dotnet", "C:\Miniconda", "C:\msys64", "$env:USERPROFILE\.cargo", "$env:USERPROFILE\.rustup", "$env:LOCALAPPDATA\Docker", "C:\ProgramData\DockerDesktop", "C:\Program Files\PostgreSQL", "C:\PostgreSQL", "C:\Program Files\MongoDB", "C:\Program Files\MySQL" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item "C:\ghcup", "C:\cabal", "C:\Program Files\LLVM", "C:\vcpkg", "C:\tools\kotlinc", "C:\tools\php", "C:\selenium", "C:\SeleniumWebDrivers", "C:\Program Files\R", "C:\rtools*", "C:\Program Files\Google\Chrome*", "C:\Program Files\Mozilla Firefox*", "C:\ProgramData\Package Cache" -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem "C:\ProgramData\Microsoft\VisualStudio\Packages" -Exclude _Instances -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item C:\hostedtoolcache\windows\Go*, C:\hostedtoolcache\windows\Ruby*, C:\hostedtoolcache\windows\PyPy*, C:\hostedtoolcache\windows\Java_* -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host ('{0:N1} GB -> {1:N1} GB free' -f $before, ((Get-PSDrive C).Free / 1GB))
+          exit 0
+
+      - name: Prepare directories.
+        run: |
+          mkdir %userprofile%\TBuild\Libraries
+          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+
+      - name: Clone.
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          path: ${{ env.TBUILD }}\tdesktop
+
+      - name: First set up.
+        shell: bash
+        run: |
+          DOCPATH=$TBUILD/tdesktop/docs/building-win.md
+          SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
+          echo "SDK=$SDK" >> $GITHUB_ENV
+
+          echo "$(sha256sum $TBUILD/tdesktop/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
+          echo "$SDK" >> CACHE_KEY.txt
+          echo "release" >> CACHE_KEY.txt
+          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
+
+          git config --global user.email "metagram@example.com"
+          git config --global user.name "MetaGram CI"
+
+      - uses: Eden-CI/msvc-dev-cmd@master
+        name: Native Tools Command Prompt.
+        with:
+          arch: x64
+          sdk: ${{ env.SDK }}
+          toolset: '14.44'
+
+      - name: NuGet sources.
+        run: |
+          nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
+          nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
+
+      - name: Restore ThirdParty cache.
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-
+            ${{ runner.os }}-third-party-
+
+      - name: Restore libraries cache.
+        id: libs-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.LibrariesPath }}
+          key: ${{ runner.os }}-x64-libs-${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-x64-libs-${{ env.CACHE_KEY }}-
+
+      - name: Libraries.
+        id: libs
+        timeout-minutes: 300
+        run: |
+          set CARGO_INCREMENTAL=0
+          %TBUILD%\tdesktop\Telegram\build\prepare\win.bat silent
+
+      - name: Save ThirdParty cache.
+        if: always() && steps.libs.outcome != 'skipped'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.os }}-third-party-${{ env.CACHE_KEY }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save libraries cache.
+        if: always() && steps.libs.outcome != 'skipped'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.LibrariesPath }}
+          key: ${{ runner.os }}-x64-libs-${{ env.CACHE_KEY }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Apply MetaGram branding.
+        run: |
+          cd %TBUILD%\tdesktop
+          python metagram\rebrand.py
+
+      - name: MetaGram build.
+        run: |
+          cd %TBUILD%\tdesktop\Telegram
+
+          call configure.bat x64 ^
+          -D TDESKTOP_API_ID=%API_ID% ^
+          -D TDESKTOP_API_HASH=%API_HASH% ^
+          -D CMAKE_CONFIGURATION_TYPES=Release ^
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+
+          cmake --build ..\out --config Release --parallel --target Telegram
+
+      - name: Pack.
+        shell: pwsh
+        run: |
+          $out = "$env:TBUILD\tdesktop\out\Release"
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          Copy-Item "$out\MetaGram.exe" artifact\
+          if (Test-Path "$out\modules") { Copy-Item "$out\modules" artifact\ -Recurse }
+
+      - uses: actions/upload-artifact@v7
+        name: Upload MetaGram.
+        with:
+          name: MetaGram-Windows-x64
+          path: artifact\
+          retention-days: 30
