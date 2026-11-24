@@ -2,9 +2,10 @@
 """Rebrand AyuGram Desktop sources as MetaGram Desktop.
 
 Re-runnable: run it after every merge from upstream AyuGram.
-Only user-visible names are changed; internal identifiers (ayu:: namespace,
-file names, settings keys) stay as-is so upstream merges keep working.
-Copyright headers and LICENSE are kept, as GPL requires.
+Only user-visible names and links are changed; internal identifiers
+(ayu:: namespace, file names, settings keys) stay as-is so upstream merges
+keep working. Copyright headers in the sources and LICENSE are kept, and the
+About box keeps the GPL notice, as the GPL requires.
 
 Usage: python metagram/rebrand.py   (from the repository root)
 """
@@ -14,7 +15,12 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# (file, old, new) exact replacements. A file is skipped if `new` is already there.
+REPO = "https://github.com/ressedich/MetaGramDesktop"
+# Where the "channel" / "chat" buttons lead.
+CHANNEL_LINK = "https://i.pinimg.com/736x/f6/e0/5a/f6e05a37fe706a45a3adcb31c79e5130.jpg"
+
+# (file, old, new) exact replacements; {NL} is the file's line ending.
+# A replacement is skipped if `new` is already in the file.
 EXACT = [
     # app name, exe name, data folder
     ("Telegram/SourceFiles/core/version.h",
@@ -44,8 +50,7 @@ EXACT = [
     ("Telegram/build/setup.iss",
      '#define MyAppName "AyuGram Desktop"', '#define MyAppName "MetaGram Desktop"'),
     ("Telegram/build/setup.iss",
-     '#define MyAppURL "https://github.com/AyuGram"',
-     '#define MyAppURL "https://github.com/ressedich/MetaGramDesktop"'),
+     '#define MyAppURL "https://github.com/AyuGram"', f'#define MyAppURL "{REPO}"'),
     ("Telegram/build/setup.iss",
      '#define MyAppExeName "AyuGram.exe"', '#define MyAppExeName "MetaGram.exe"'),
     # Windows taskbar / notifications identity
@@ -57,25 +62,77 @@ EXACT = [
      '.shortAppName = u"AyuGram"_q,', '.shortAppName = u"MetaGram"_q,'),
     ("Telegram/SourceFiles/core/application.cpp",
      'u"https://github.com/AyuGram/AyuGramDesktop/releases"_q',
-     'u"https://github.com/ressedich/MetaGramDesktop/releases"_q'),
-    # tray menu
+     f'u"{REPO}/releases"_q'),
+    # tray menu, unsupported-message text
     ("Telegram/SourceFiles/tray.cpp",
      '.replace("Telegram", "AyuGram");', '.replace("Telegram", "MetaGram");'),
     ("Telegram/SourceFiles/history/history_item_helpers.cpp",
      '.replace("Telegram", "AyuGram")', '.replace("Telegram", "MetaGram")'),
-    # About box: own name, keep credit to AyuGram
+    ("Telegram/SourceFiles/history/history_item_helpers.cpp",
+     'u"https://t.me/AyuGramReleases"_q', f'u"{CHANNEL_LINK}"_q'),
+    # About box: own name and repo; GPL notice stays
     ("Telegram/SourceFiles/boxes/about_box.cpp",
      'box->setTitle(rpl::single(u"AyuGram Desktop"_q));',
      'box->setTitle(rpl::single(u"MetaGram Desktop"_q));'),
-    # settings header
+    ("Telegram/SourceFiles/boxes/about_box.cpp",
+     '"https://github.com/AyuGram/AyuGramDesktop/blob/dev/LICENSE"',
+     f'"{REPO}/blob/dev/LICENSE"'),
+    ("Telegram/SourceFiles/boxes/about_box.cpp",
+     '"https://github.com/AyuGram/AyuGramDesktop")),',
+     f'"{REPO}")),'),
+    ("Telegram/SourceFiles/boxes/about_box.cpp",
+     'rpl::single(QString("@AyuGramReleases")),',
+     'rpl::single(QString("MetaGram")),'),
+    ("Telegram/SourceFiles/boxes/about_box.cpp",
+     '\t\t\tcontroller->showPeerByLink(Window::PeerByLinkInfo{{NL}'
+     '\t\t\t\t.usernameOrId = QString("ayugramreleases"),{NL}'
+     '\t\t\t});',
+     f'\t\t\tFile::OpenUrl(u"{CHANNEL_LINK}"_q);'),
+    # MetaGram settings page
     ("Telegram/SourceFiles/ayu/ui/settings/settings_main.cpp",
      'QString("AyuGram Desktop v")', 'QString("MetaGram Desktop v")'),
     ("Telegram/SourceFiles/ayu/ui/settings/settings_main.cpp",
      '.title = rpl::single(QString("AyuGram")),',
      '.title = rpl::single(QString("MetaGram")),'),
+    ("Telegram/SourceFiles/ayu/ui/settings/settings_main.cpp",
+     '\t\t.label = rpl::single(QString("@ayugram")),{NL}'
+     '\t\t.onClick = [=] {{NL}'
+     '\t\t\tcontroller->showPeerByLink(Window::PeerByLinkInfo{{NL}'
+     '\t\t\t\t.usernameOrId = QString("ayugram"),{NL}'
+     '\t\t\t});',
+     '\t\t.label = rpl::single(QString("@metagram")),{NL}'
+     '\t\t.onClick = [=] {{NL}'
+     f'\t\t\tQDesktopServices::openUrl(QString("{CHANNEL_LINK}"));'),
+    ("Telegram/SourceFiles/ayu/ui/settings/settings_main.cpp",
+     '\t\t.label = rpl::single(QString("@ayugramchat")),{NL}'
+     '\t\t.onClick = [=] {{NL}'
+     '\t\t\tcontroller->showPeerByLink(Window::PeerByLinkInfo{{NL}'
+     '\t\t\t\t.usernameOrId = QString("ayugramchat"),{NL}'
+     '\t\t\t});',
+     '\t\t.label = rpl::single(QString("@metagramchat")),{NL}'
+     '\t\t.onClick = [=] {{NL}'
+     f'\t\t\tQDesktopServices::openUrl(QString("{CHANNEL_LINK}"));'),
     # main menu footer
     ("Telegram/SourceFiles/window/window_main_menu.cpp",
      'u"AyuGram Desktop"_q,', 'u"MetaGram Desktop"_q,'),
+    ("Telegram/SourceFiles/window/window_main_menu.cpp",
+     'u"https://ayugram.one"_q', f'u"{REPO}"_q'),
+    # previews in Appearance settings
+    ("Telegram/SourceFiles/ayu/ui/components/message_preview.cpp",
+     'u"AyuGram Releases"_q', 'u"MetaGram Releases"_q'),
+    ("Telegram/SourceFiles/ayu/ui/components/avatar_corners_preview.cpp",
+     'u"AyuGram Releases"_q', 'u"MetaGram Releases"_q'),
+    ("Telegram/SourceFiles/ayu/ui/components/avatar_corners_preview.cpp",
+     'setCursor(Qt::PointingHandCursor);{NL}\tresolveChannel();',
+     'setCursor(Qt::PointingHandCursor);'),
+    ("Telegram/SourceFiles/ayu/ui/components/avatar_corners_preview.cpp",
+     '#include "apiwrap.h"',
+     '#include "apiwrap.h"{NL}#include "core/file_utilities.h"'),
+    ("Telegram/SourceFiles/ayu/ui/components/avatar_corners_preview.cpp",
+     '\t\t_controller->showPeerByLink(Window::PeerByLinkInfo{{NL}'
+     '\t\t\t.usernameOrId = u"AyuGramReleases"_q,{NL}'
+     '\t\t});',
+     f'\t\tFile::OpenUrl(u"{CHANNEL_LINK}"_q);'),
     # crash window
     ("Telegram/SourceFiles/core/crash_report_window.cpp",
      'u"AyuGram"_q : title', 'u"MetaGram"_q : title'),
@@ -92,8 +149,7 @@ EXACT = [
     ("Telegram/SourceFiles/core/crash_report_window.cpp",
      'GET THE LATEST VERSION OF AYUGRAM DESKTOP', 'GET THE LATEST VERSION OF METAGRAM DESKTOP'),
     ("Telegram/SourceFiles/core/crash_report_window.cpp",
-     'u"https://github.com/AyuGram/AyuGramDesktop"_q',
-     'u"https://github.com/ressedich/MetaGramDesktop"_q'),
+     'u"https://github.com/AyuGram/AyuGramDesktop"_q', f'u"{REPO}"_q'),
     ("Telegram/SourceFiles/core/crash_report_window.cpp",
      'u"AyuGram Crash Report"_q', 'u"MetaGram Crash Report"_q'),
     # updater helper exe names
@@ -103,53 +159,73 @@ EXACT = [
     ("Telegram/SourceFiles/_other/updater_win.cpp",
      'exeName = L"AyuGram.exe";', 'exeName = L"MetaGram.exe";'),
     # Translations downloaded at runtime still say AyuGram: rename on load,
-    # but keep our own texts and the lines that credit the original project.
+    # and keep our own texts for a few keys.
     ("Telegram/SourceFiles/ayu/ayu_lang.cpp",
      'auto val = json.value(brokenKey).toString().replace(qsl("&amp;"), qsl("&"));',
-     'auto val = json.value(brokenKey).toString().replace(qsl("&amp;"), qsl("&"));{NL}'
+     'auto val = json.value(brokenKey).toString().replace(qsl("&amp;"), qsl("&"))'
+     '.replace(qsl("AyuGram"), qsl("MetaGram"));{NL}'
      '\t\tif (brokenKey.startsWith(qsl("SettingsWatermark"))'
      ' || brokenKey.startsWith(qsl("FirstLaunchAlert"))'
      ' || brokenKey.startsWith(qsl("IntroAbout"))) {{NL}'
      '\t\t\tcontinue; // MetaGram: keep texts from lang.strings{NL}'
-     '\t\t}{NL}'
-     '\t\tif (!brokenKey.startsWith(qsl("SupporterPopup"))'
-     ' && !brokenKey.startsWith(qsl("OfficialResourcePopup"))'
-     ' && !brokenKey.startsWith(qsl("ExteraChatsAlert"))) {{NL}'
-     '\t\t\tval = val.replace(qsl("AyuGram"), qsl("MetaGram"));{NL}'
      '\t\t}'),
 ]
 
-# Shortcut / pinned-taskbar names on Windows.
+# (file, regex, replacement) for blocks removed entirely.
 REGEX = [
+    # Windows shortcut / pinned-taskbar names
     ("Telegram/SourceFiles/platform/win/windows_app_user_model_id.cpp",
      r'u"AyuGram( Desktop| for Windows)?/AyuGram\.lnk"_q', None),
     ("Telegram/SourceFiles/platform/win/windows_app_user_model_id.cpp",
      r'u"AyuGram(Alpha)?\.lnk"_q', None),
     ("Telegram/SourceFiles/ayu/utils/windows_utils.cpp",
      r'AyuGram( Desktop)?(/AyuGram)?\.lnk', None),
+    # Translate (Crowdin) and Documentation buttons point to AyuGram sites
+    ("Telegram/SourceFiles/ayu/ui/settings/settings_main.cpp",
+     r'\tbuilder\.addButton\(\{\r?\n\t\t\.id = u"ayu/crowdin"_q,.*?\n\t\}\);\r?\n', ''),
+    ("Telegram/SourceFiles/ayu/ui/settings/settings_main.cpp",
+     r'\tbuilder\.addButton\(\{\r?\n\t\t\.id = u"ayu/website"_q,.*?\n\t\}\);\r?\n', ''),
+]
+
+# (file, literal): "AyuGram" -> "MetaGram" inside this exact literal.
+RENAME_IN = [
+    ("Telegram/Resources/winrc/Telegram.rc", 'VALUE "FileDescription", "AyuGram Desktop"'),
+    ("Telegram/Resources/winrc/Telegram.rc", 'VALUE "ProductName", "AyuGram Desktop"'),
+    ("Telegram/Resources/winrc/Updater.rc", 'VALUE "FileDescription", "AyuGram Desktop Updater"'),
+    ("Telegram/Resources/winrc/Updater.rc", 'VALUE "ProductName", "AyuGram Desktop"'),
+    ("Telegram/SourceFiles/_other/startup_task_win.cpp", '(directory + L"\\\\AyuGram.exe")'),
+    ("Telegram/SourceFiles/platform/win/specific_win.cpp", '+ "\\\\AyuGram.lnk";'),
+    ("Telegram/SourceFiles/ayu/features/filters/filters_utils.cpp", 'titlePart.setBody("AyuGram Filters");'),
+    ("Telegram/SourceFiles/ayu/ui/context_menu/context_menu.cpp", '.text = u"AyuGram"_q,'),
+    ("Telegram/SourceFiles/ayu/ui/settings/settings_ayu.cpp", '.title = u"AyuGram"_q,'),
+    ("Telegram/SourceFiles/ayu/ui/settings/settings_ayu.cpp", 'return rpl::single(QString("AyuGram"));'),
+    ("Telegram/SourceFiles/core/crash_reports.cpp", '"AyuGram Desktop launch was not finished properly :( "'),
+    ("Telegram/SourceFiles/core/launcher.cpp", 'QApplication::setApplicationName(u"AyuGramDesktop"_q);'),
+    ("Telegram/SourceFiles/export/output/export_output_html.cpp", '"of AyuGram Desktop. Please update the application.")'),
+    ("Telegram/SourceFiles/intro/intro_widget.cpp", 'QString("AyuGram Desktop v%1")'),
+    ("Telegram/SourceFiles/settings/sections/settings_notifications.cpp", 'elided(u"AyuGram Desktop"_q,'),
+    ("Telegram/SourceFiles/window/notifications_manager_default.cpp", 'TextWithEntities{ u"AyuGram Desktop"_q }'),
+    ("Telegram/SourceFiles/window/main_window.cpp", 'setTitle((user.isEmpty() ? u"AyuGram"_q : user)'),
+    ("Telegram/SourceFiles/platform/linux/main_window_linux.cpp", 'lt_telegram, u"AyuGram"_q),'),
+    ("Telegram/SourceFiles/platform/linux/main_window_linux.cpp", '\t\t\tu"AyuGram"_q),'),
+    ("Telegram/SourceFiles/platform/mac/global_menu_mac.mm", 'u"About AyuGram"_q,'),
+    ("Telegram/SourceFiles/platform/mac/global_menu_mac.mm", 'addMenu(u"AyuGram"_q)'),
+    ("Telegram/SourceFiles/platform/mac/window_title_mac.mm", 'p.drawText(titleRect, u"AyuGram"_q, style::al_center);'),
+]
+EXACT += [(f, s, s.replace("AyuGram", "MetaGram")) for f, s in RENAME_IN]
+EXACT += [
+    ("Telegram/SourceFiles/core/update_checker.cpp",
+     'return "https://t.me/AyuGramReleases";', f'return "{CHANNEL_LINK}";'),
 ]
 
 # Strings in lang.strings whose text we write ourselves.
 LANG_OVERRIDES = {
-    "ayu_SettingsWatermark":
-        "MetaGram is based on AyuGram by Radolyn Labs.",
+    "ayu_SettingsWatermark": "MetaGram Desktop",
     "ayu_FirstLaunchAlert":
-        "MetaGram is **free** software based on AyuGram. "
+        "MetaGram is **free** software. "
         "You assume **full responsibility** for using this application with your account.",
-    "ayu_IntroAbout":
-        "Welcome to MetaGram Desktop.\\nMake Telegram your own.",
+    "ayu_IntroAbout": "Welcome to MetaGram Desktop.\\nMake Telegram your own.",
 }
-# Keys that credit the original project: leave them alone.
-LANG_KEEP = {"ayu_SupporterPopup", "ayu_OfficialResourcePopup", "ayu_ExteraChatsAlert"}
-
-
-def read(path):
-    raw = path.read_bytes()
-    return raw.decode("utf-8")
-
-
-def write(path, text):
-    path.write_bytes(text.encode("utf-8"))
 
 
 def ayu_to_meta(match):
@@ -162,22 +238,27 @@ def main():
 
     def get(rel):
         if rel not in files:
-            files[rel] = read(ROOT / rel)
+            files[rel] = (ROOT / rel).read_bytes().decode("utf-8")
         return files[rel]
 
     for rel, old, new in EXACT:
         text = get(rel)
-        new = new.replace("{NL}", "\r\n" if "\r\n" in text else "\n")
+        nl = "\r\n" if "\r\n" in text else "\n"
+        old = old.replace("{NL}", nl)
+        new = new.replace("{NL}", nl)
         if new in text:
             continue
         if old in text:
             files[rel] = text.replace(old, new)
         else:
-            errors.append(f"{rel}: pattern not found: {old}")
+            errors.append(f"{rel}: pattern not found: {old!r}")
 
-    for rel, pattern, _ in REGEX:
+    for rel, pattern, repl in REGEX:
         text = get(rel)
-        files[rel] = re.sub(pattern, ayu_to_meta, text)
+        if repl is None:
+            files[rel] = re.sub(pattern, ayu_to_meta, text)
+        else:
+            files[rel] = re.sub(pattern, repl, text, flags=re.S)
 
     rel = "Telegram/Resources/langs/lang.strings"
     lines = get(rel).split("\n")
@@ -186,10 +267,7 @@ def main():
         if not m:
             continue
         key, value, cr = m.groups()
-        if key in LANG_OVERRIDES:
-            value = LANG_OVERRIDES[key]
-        elif key not in LANG_KEEP:
-            value = value.replace("AyuGram", "MetaGram")
+        value = LANG_OVERRIDES.get(key, value.replace("AyuGram", "MetaGram"))
         lines[i] = f'"{key}" = "{value}";{cr}'
     files[rel] = "\n".join(lines)
 
@@ -200,8 +278,9 @@ def main():
 
     changed = 0
     for rel, text in files.items():
-        if read(ROOT / rel) != text:
-            write(ROOT / rel, text)
+        path = ROOT / rel
+        if path.read_bytes().decode("utf-8") != text:
+            path.write_bytes(text.encode("utf-8"))
             changed += 1
             print(f"rebranded {rel}")
     print(f"done, {changed} file(s) changed")

@@ -2369,7 +2369,7 @@ void UpdateApplication() {
 			} else if (KSandbox::isSnap()) {
 				return "https://snapcraft.io/telegram-desktop";
 			}
-			return "https://t.me/AyuGramReleases";
+			return "https://i.pinimg.com/736x/f6/e0/5a/f6e05a37fe706a45a3adcb31c79e5130.jpg";
 #endif // OS_WIN_STORE || OS_MAC_STORE
 		}();
 		UrlClickHandler::Open(url);

@@ -1458,7 +1458,7 @@ bool CanHoldItemNotification(not_null<const HistoryItem*> item) {
 }
 
 [[nodiscard]] TextWithEntities UnsupportedMessageText() {
-	const auto siteLink = u"https://t.me/AyuGramReleases"_q;
+	const auto siteLink = u"https://i.pinimg.com/736x/f6/e0/5a/f6e05a37fe706a45a3adcb31c79e5130.jpg"_q;
 	auto result = TextWithEntities{
 		tr::lng_message_unsupported(tr::now, lt_link, siteLink).replace("Telegram", "MetaGram")
 	};

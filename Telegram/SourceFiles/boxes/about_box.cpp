@@ -45,11 +45,11 @@ rpl::producer<TextWithEntities> Text() {
 		lt_gpl_link,
 		rpl::single(Ui::Text::Link(
 			"GNU GPL",
-			"https://github.com/AyuGram/AyuGramDesktop/blob/dev/LICENSE")),
+			"https://github.com/ressedich/MetaGramDesktop/blob/dev/LICENSE")),
 		lt_github_link,
 		rpl::single(Ui::Text::Link(
 			"GitHub",
-			"https://github.com/AyuGram/AyuGramDesktop")),
+			"https://github.com/ressedich/MetaGramDesktop")),
 		tr::marked);
 }
 
@@ -91,13 +91,11 @@ void AboutBox(not_null<Ui::GenericBox*> box, Window::SessionController* controll
 
 	box->addButton(tr::lng_close(), [=] { box->closeBox(); });
 	box->addLeftButton(
-		rpl::single(QString("@AyuGramReleases")),
+		rpl::single(QString("MetaGram")),
 		[box, controller]
 		{
 			box->closeBox();
-			controller->showPeerByLink(Window::PeerByLinkInfo{
-				.usernameOrId = QString("ayugramreleases"),
-			});
+			File::OpenUrl(u"https://i.pinimg.com/736x/f6/e0/5a/f6e05a37fe706a45a3adcb31c79e5130.jpg"_q);
 		});
 
 	box->setWidth(st::aboutWidth);

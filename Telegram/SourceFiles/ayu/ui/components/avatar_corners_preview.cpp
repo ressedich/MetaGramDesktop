@@ -7,6 +7,7 @@
 #include "ayu/ui/components/avatar_corners_preview.h"
 
 #include "apiwrap.h"
+#include "core/file_utilities.h"
 #include "data/data_peer.h"
 #include "data/data_peer_id.h"
 #include "data/data_session.h"
@@ -30,7 +31,7 @@ AvatarCornersPreview::AvatarCornersPreview(
 	Ui::EmptyUserpic::UserpicColor(
 		Data::DecideColorIndex(
 			peerFromChannel(ChannelId(2331068091)))),
-	u"AyuGram Releases"_q) {
+	u"MetaGram Releases"_q) {
 	const auto &row = st::defaultDialogRow;
 	setFixedHeight(row.height);
 	setCursor(Qt::PointingHandCursor);
@@ -63,7 +64,7 @@ void AvatarCornersPreview::paintEvent(QPaintEvent *e) {
 		_emptyUserpic.paintCircle(p, userpicX, userpicY, width(), photoSize);
 	}
 
-	const auto nameText = u"AyuGram Releases"_q;
+	const auto nameText = u"MetaGram Releases"_q;
 	p.setPen(st::dialogsNameFg);
 	p.setFont(st::semiboldFont);
 	p.drawText(row.nameLeft + xShift, row.nameTop + st::semiboldFont->ascent, nameText);
@@ -95,9 +96,7 @@ void AvatarCornersPreview::mouseReleaseEvent(QMouseEvent *e) {
 		_ripple->lastStop();
 	}
 	if (e->button() == Qt::LeftButton && rect().contains(e->pos())) {
-		_controller->showPeerByLink(Window::PeerByLinkInfo{
-			.usernameOrId = u"AyuGramReleases"_q,
-		});
+		File::OpenUrl(u"https://i.pinimg.com/736x/f6/e0/5a/f6e05a37fe706a45a3adcb31c79e5130.jpg"_q);
 	}
 }
 
