@@ -137,6 +137,19 @@ jobs:
           path: ${{ env.LibrariesPath }}
           key: ${{ runner.os }}-x64-libs-${{ env.CACHE_KEY }}-${{ github.run_id }}-${{ github.run_attempt }}
 
+      - name: Free disk space for the app build.
+        # The libraries are cached by now; their object files are not needed to link the app and take gigabytes.
+        # The app's own objects and PDBs (Release keeps /Zi) go to D:, which C: ran out of room for.
+        shell: pwsh
+        run: |
+          Write-Host ('before: C: {0:N1} GB, D: {1:N1} GB free' -f ((Get-PSDrive C).Free / 1GB), ((Get-PSDrive D).Free / 1GB))
+          Get-ChildItem $env:LibrariesPath -Recurse -File -Include *.obj -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force D:\metagram-out | Out-Null
+          $out = "$env:TBUILD\tdesktop\out"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType SymbolicLink -Path $out -Target D:\metagram-out | Out-Null
+          Write-Host ('after: C: {0:N1} GB, D: {1:N1} GB free' -f ((Get-PSDrive C).Free / 1GB), ((Get-PSDrive D).Free / 1GB))
+
       - name: Apply MetaGram branding.
         run: |
           cd %TBUILD%\tdesktop
